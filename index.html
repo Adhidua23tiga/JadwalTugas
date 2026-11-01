@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#EECAA6">
+  <meta name="theme-color" content="#EECAA6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#3A2A1C" media="(prefers-color-scheme: dark)">
   <title>Dashboard Jadwal & Tugas</title>
+  <!-- Font Nunito dari Google Fonts (kalau gagal dimuat, otomatis pakai font bawaan HP) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <!-- Semua path relatif (tanpa "/" di depan) supaya jalan di username.github.io/nama-repo/ -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -77,6 +82,37 @@
     </header>
 
     <main class="container">
+      <!-- Ringkasan: sapaan, statistik, progress (hanya di halaman "Belum Selesai") -->
+      <div id="dash-top">
+        <section class="hero" aria-live="polite">
+          <div class="hero-title" id="greeting"></div>
+          <div class="hero-sub" id="summary"></div>
+        </section>
+
+        <section class="stats" aria-label="Ringkasan tugas">
+          <div class="stat stat-red">
+            <div class="stat-num" id="stat-overdue">0</div>
+            <div class="stat-label">Terlambat</div>
+          </div>
+          <div class="stat stat-orange">
+            <div class="stat-num" id="stat-today">0</div>
+            <div class="stat-label">Hari ini</div>
+          </div>
+          <div class="stat stat-green">
+            <div class="stat-num" id="stat-week">0</div>
+            <div class="stat-label">Selesai 7 hari</div>
+          </div>
+        </section>
+
+        <section class="progress" id="progress" aria-label="Progres tugas">
+          <div class="progress-text">
+            <span id="progress-text"></span>
+            <span id="progress-pct"></span>
+          </div>
+          <div class="progress-bar"><div id="progress-fill"></div></div>
+        </section>
+      </div>
+
       <!-- Banner pengingat (deadline < 24 jam) -->
       <div id="reminder-banner" class="banner hidden" role="status"></div>
 
@@ -149,8 +185,9 @@
     </div>
   </div>
 
-  <!-- Pesan singkat (toast) -->
+  <!-- Pesan singkat (toast) & wadah confetti -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="confetti" aria-hidden="true"></div>
 
   <!-- type="module" wajib karena app.js memakai import Firebase dari CDN -->
   <script type="module" src="app.js"></script>

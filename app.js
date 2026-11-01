@@ -55,6 +55,7 @@ let timerPengingat = null; // interval cek pengingat
 let timerRender = null;    // interval segarkan tampilan
 let authMode = "login";    // "login" | "register"
 let swDidaftarkan = false;
+let animasi = true;        // true = daftar tugas tampil dengan animasi masuk (sekali saja)
 
 // =========================================================
 // Utilitas
@@ -117,6 +118,75 @@ function toast(pesan) {
 }
 
 const NAMA_PRIORITAS = { rendah: "Rendah", sedang: "Sedang", tinggi: "Tinggi" };
+
+// ---------- Tampilan: ikon & warna per mata pelajaran ----------
+// Ikon dipilih dari kata kunci pada nama mapel; kalau tidak cocok dipakai 📝
+const IKON_MAPEL = [
+  ["matematika", "🧮"], ["indonesia", "📖"], ["inggris", "🔤"], ["ppkn", "⚖️"],
+  ["agama", "🙏"], ["pjok", "⚽"], ["olahraga", "⚽"], ["sejarah", "🏛️"],
+  ["informatika", "💻"], ["kejuruan", "🛠️"], ["ipas", "🔬"], ["seni", "🎨"],
+  ["fisika", "⚡"], ["kimia", "🧪"], ["biologi", "🌱"], ["ekonomi", "💰"],
+];
+function ikonMapel(mapel) {
+  const m = String(mapel || "").toLowerCase();
+  const cocok = IKON_MAPEL.find(([kata]) => m.includes(kata));
+  return cocok ? cocok[1] : "📝";
+}
+
+// Hue (0-360) tetap untuk satu nama mapel, jadi warnanya selalu sama
+const HUE_MAPEL = [210, 265, 150, 335, 175, 40, 100, 15];
+function hueMapel(mapel) {
+  const m = String(mapel || "").trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < m.length; i++) hash = (hash * 31 + m.charCodeAt(i)) >>> 0;
+  return HUE_MAPEL[hash % HUE_MAPEL.length];
+}
+
+// Sapaan sesuai jam & nama panggilan dari akun
+function sapaan() {
+  const jam = new Date().getHours();
+  if (jam < 11) return "Selamat pagi";
+  if (jam < 15) return "Selamat siang";
+  if (jam < 18) return "Selamat sore";
+  return "Selamat malam";
+}
+function namaPanggilan() {
+  let nama = (user && user.displayName) || (user && user.email ? user.email.split("@")[0] : "");
+  nama = nama.split(/[\s._-]+/)[0] || "kamu";
+  return nama.charAt(0).toUpperCase() + nama.slice(1);
+}
+
+// Ilustrasi sederhana untuk keadaan kosong (warna diatur di style.css)
+const ILUSTRASI = `
+  <svg class="ill" viewBox="0 0 200 160" aria-hidden="true">
+    <circle class="bg" cx="100" cy="82" r="70"/>
+    <rect class="paper" x="62" y="30" width="76" height="98" rx="10"/>
+    <rect class="clip" x="84" y="22" width="32" height="16" rx="6"/>
+    <line class="line" x1="76" y1="62" x2="124" y2="62"/>
+    <line class="line" x1="76" y1="80" x2="112" y2="80"/>
+    <path class="tick" d="M80 104 L94 117 L120 92"/>
+    <path class="spark" d="M30 40 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/>
+    <path class="spark" d="M165 105 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/>
+  </svg>`;
+
+// Confetti kecil saat tugas selesai (dimatikan kalau pengguna memilih "kurangi animasi")
+function confetti() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const wadah = $("confetti");
+  const warna = ["#EECAA6", "#8A5A2B", "#E57373", "#FFB74D", "#81C995", "#64B5F6", "#BA68C8"];
+  for (let i = 0; i < 32; i++) {
+    const p = document.createElement("span");
+    p.className = "konfeti";
+    p.style.left = `${Math.random() * 100}%`;
+    p.style.background = warna[i % warna.length];
+    p.style.setProperty("--x", `${Math.round(Math.random() * 160 - 80)}px`);
+    p.style.setProperty("--r", `${Math.round(Math.random() * 720 - 360)}deg`);
+    p.style.setProperty("--d", `${(1.1 + Math.random() * 0.9).toFixed(2)}s`);
+    p.style.animationDelay = `${(Math.random() * 0.25).toFixed(2)}s`;
+    wadah.appendChild(p);
+  }
+  setTimeout(() => { wadah.innerHTML = ""; }, 2400);
+}
 
 // Terjemahan pesan error Firebase ke bahasa Indonesia
 function pesanError(err) {
@@ -313,6 +383,7 @@ function toggleSelesai(id) {
     completedAt: sekarangSelesai ? serverTimestamp() : null,
   }).catch((ex) => toast(pesanError(ex)));
   toast(sekarangSelesai ? "Tugas ditandai selesai 🎉" : "Tugas dikembalikan ke belum selesai.");
+  if (sekarangSelesai) confetti();
 }
 
 function hapusTugas(id) {
@@ -331,21 +402,25 @@ function setTab(nama) {
   tab = nama;
   $$(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === nama));
   $("page-title").textContent = nama === "pending" ? "Tugas Belum Selesai" : "Tugas Selesai";
+  $("dash-top").classList.toggle("hidden", nama !== "pending"); // sapaan & statistik hanya di halaman "Belum Selesai"
+  animasi = true; // kartu tampil dengan animasi saat pindah halaman
   render();
 }
 $$(".tab").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
 
-function kartuTugas(t) {
+function kartuTugas(t, i) {
   const deadlineMs = ms(t.deadline);
   let kelas = "";
   let infoWaktu = "";
   if (t.completed) {
     kelas = "done";
-    infoWaktu = `✅ Selesai ${formatTanggal(ms(t.completedAt))}<br>⏰ Deadline: ${formatTanggal(deadlineMs)}`;
+    infoWaktu = `<div class="deadline">⏰ Deadline: ${formatTanggal(deadlineMs)}</div>
+      <span class="pill pill-done">✅ Selesai ${formatTanggal(ms(t.completedAt))}</span>`;
   } else {
     const st = statusDeadline(deadlineMs);
     kelas = st.kelas;
-    infoWaktu = `⏰ ${formatTanggal(deadlineMs)}<br>${esc(st.label)}`;
+    infoWaktu = `<div class="deadline">⏰ ${formatTanggal(deadlineMs)}</div>
+      <span class="pill pill-${st.kelas || "normal"}">${esc(st.label)}</span>`;
   }
   const prio = NAMA_PRIORITAS[t.priority] ? t.priority : "sedang";
   const deskripsi = t.description ? `<p class="desc">${esc(t.description)}</p>` : "";
@@ -355,16 +430,16 @@ function kartuTugas(t) {
     : "";
 
   return `
-    <article class="task ${kelas}" data-id="${esc(t.id)}">
+    <article class="task ${kelas}" data-id="${esc(t.id)}" style="--i:${Math.min(i, 10)}">
       <button type="button" class="check" data-aksi="toggle" aria-label="${labelCek}: ${esc(t.title)}"></button>
       <div class="task-body">
-        <div class="task-title">${esc(t.title)}</div>
+        <div class="task-title"><span class="ico" aria-hidden="true">${ikonMapel(t.subject)}</span><span>${esc(t.title)}</span></div>
         <div class="chips">
-          <span class="chip">${esc(t.subject)}</span>
+          <span class="chip subj" style="--h:${hueMapel(t.subject)}">${esc(t.subject)}</span>
           <span class="chip prio-${prio}">Prioritas ${NAMA_PRIORITAS[prio]}</span>
         </div>
         ${deskripsi}
-        <div class="deadline">${infoWaktu}</div>
+        ${infoWaktu}
         <div class="task-actions">
           ${tombolKembali}
           <button type="button" data-aksi="edit">✏️ Edit</button>
@@ -385,19 +460,57 @@ function render() {
   $("count-done").textContent = selesai.length;
 
   const daftar = tab === "pending" ? belum : selesai;
-  $("task-list").innerHTML = daftar.map(kartuTugas).join("");
+  const listEl = $("task-list");
+  listEl.classList.toggle("anim", animasi); // animasi masuk hanya sekali, bukan tiap penyegaran
+  animasi = false;
+  listEl.innerHTML = daftar.map(kartuTugas).join("");
 
   const kosong = $("empty-state");
   if (daftar.length === 0) {
     kosong.classList.remove("hidden");
     kosong.innerHTML = tab === "pending"
-      ? `<span class="big">🎉</span>Tidak ada tugas yang belum selesai.<br>Tekan <strong>Tambah Tugas</strong> untuk mencatat yang baru.`
-      : `<span class="big">📭</span>Belum ada tugas yang selesai.`;
+      ? `${ILUSTRASI}<span class="empty-title">Semua tugas beres! 🎉</span>Tekan <strong>Tambah Tugas</strong> untuk mencatat yang baru.`
+      : `${ILUSTRASI}<span class="empty-title">Belum ada tugas selesai</span>Tugas yang kamu selesaikan akan muncul di sini.`;
   } else {
     kosong.classList.add("hidden");
   }
 
+  renderRingkasan(belum, selesai);
   renderBanner(belum);
+}
+
+// Sapaan, kartu statistik, dan progress bar
+function renderRingkasan(belum, selesai) {
+  const sekarang = Date.now();
+  const terlambat = belum.filter((t) => ms(t.deadline) < sekarang).length;
+  const hariIni = belum.filter((t) => ms(t.deadline) >= sekarang && sameDay(new Date(ms(t.deadline)), new Date())).length;
+  const mingguIni = belum.filter((t) => ms(t.deadline) >= sekarang && ms(t.deadline) - sekarang <= 7 * 24 * JAM).length;
+  const selesai7Hari = selesai.filter((t) => sekarang - ms(t.completedAt) <= 7 * 24 * JAM).length;
+
+  $("greeting").textContent = `${sapaan()}, ${namaPanggilan()}! 👋`;
+
+  let ringkas;
+  if (belum.length === 0) ringkas = tasks.length ? "Semua tugas sudah selesai. Mantap! 🎉" : "Belum ada tugas. Yuk catat tugas pertamamu!";
+  else {
+    const bagian = [`${belum.length} tugas belum selesai`];
+    if (hariIni > 0) bagian.push(`${hariIni} deadline hari ini`);
+    else if (mingguIni > 0) bagian.push(`${mingguIni} deadline minggu ini`);
+    if (terlambat > 0) bagian.push(`${terlambat} terlambat`);
+    ringkas = bagian.join(" · ");
+  }
+  $("summary").textContent = ringkas;
+
+  $("stat-overdue").textContent = terlambat;
+  $("stat-today").textContent = hariIni;
+  $("stat-week").textContent = selesai7Hari;
+
+  // Progress: selesai dibanding semua tugas
+  const total = tasks.length;
+  const persen = total ? Math.round((selesai.length / total) * 100) : 0;
+  $("progress").classList.toggle("hidden", total === 0);
+  $("progress-text").textContent = `Selesai ${selesai.length} dari ${total} tugas`;
+  $("progress-pct").textContent = `${persen}%`;
+  $("progress-fill").style.width = `${persen}%`;
 }
 
 // Banner pengingat: tugas belum selesai yang deadline-nya kurang dari 24 jam (termasuk yang sudah lewat)
