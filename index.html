@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#EECAA6">
+  <title>Dashboard Jadwal & Tugas</title>
+  <!-- Semua path relatif (tanpa "/" di depan) supaya jalan di username.github.io/nama-repo/ -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============ LAYAR MEMUAT ============ -->
+  <div id="loading" class="loading">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Memuat…</p>
+  </div>
+
+  <!-- ============ HALAMAN LOGIN / DAFTAR ============ -->
+  <section id="auth-view" class="auth hidden">
+    <div class="auth-card">
+      <div class="logo" aria-hidden="true">📚</div>
+      <h1>Dashboard Jadwal &amp; Tugas</h1>
+      <p class="subtitle">Catat tugas sekolahmu dan jangan sampai terlewat deadline.</p>
+
+      <div class="segmented" role="tablist" aria-label="Pilih masuk atau daftar">
+        <button type="button" class="seg active" data-mode="login" role="tab">Masuk</button>
+        <button type="button" class="seg" data-mode="register" role="tab">Daftar</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <label>Email
+          <input type="email" id="auth-email" autocomplete="email" placeholder="nama@email.com" required>
+        </label>
+        <label>Kata sandi
+          <input type="password" id="auth-password" autocomplete="current-password" placeholder="Minimal 6 karakter" minlength="6" required>
+        </label>
+        <p id="auth-error" class="error" role="alert"></p>
+        <button type="submit" class="btn primary block" id="auth-submit">Masuk</button>
+      </form>
+
+      <button type="button" class="link" id="forgot-btn">Lupa kata sandi?</button>
+
+      <div class="divider"><span>atau</span></div>
+
+      <button type="button" class="btn google block" id="google-btn">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Lanjutkan dengan Google
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ APLIKASI UTAMA ============ -->
+  <section id="app-view" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="app-title">📚 Jadwal &amp; Tugas</div>
+          <div class="user-email" id="user-email"></div>
+        </div>
+        <button type="button" class="btn ghost small" id="logout-btn">Keluar</button>
+      </div>
+      <!-- Menu navigasi antar halaman -->
+      <nav class="tabs" aria-label="Halaman">
+        <button type="button" class="tab active" data-tab="pending">
+          Belum Selesai <span class="badge" id="count-pending">0</span>
+        </button>
+        <button type="button" class="tab" data-tab="done">
+          Selesai <span class="badge" id="count-done">0</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <!-- Banner pengingat (deadline < 24 jam) -->
+      <div id="reminder-banner" class="banner hidden" role="status"></div>
+
+      <!-- Ajakan mengaktifkan notifikasi (dijelaskan dulu sebelum minta izin) -->
+      <div id="notif-prompt" class="notif-card hidden">
+        <strong>🔔 Aktifkan pengingat deadline?</strong>
+        <p>Kami akan menampilkan notifikasi saat deadline tinggal 24 jam dan 1 jam lagi.
+           Catatan: notifikasi hanya muncul selama halaman ini terbuka di browser.</p>
+        <div class="row">
+          <button type="button" class="btn primary small" id="notif-allow">Aktifkan</button>
+          <button type="button" class="btn ghost small" id="notif-later">Nanti saja</button>
+        </div>
+      </div>
+
+      <h2 id="page-title">Tugas Belum Selesai</h2>
+      <div id="task-list" class="task-list"></div>
+      <div id="empty-state" class="empty hidden"></div>
+    </main>
+
+    <button type="button" class="fab" id="add-btn" aria-label="Tambah tugas">
+      <span class="fab-plus" aria-hidden="true">+</span><span>Tambah Tugas</span>
+    </button>
+  </section>
+
+  <!-- ============ FORM TAMBAH / EDIT TUGAS ============ -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modal-title">Tambah Tugas</h3>
+        <button type="button" class="icon-btn" id="modal-close" aria-label="Tutup">✕</button>
+      </div>
+      <form id="task-form" novalidate>
+        <label>Judul tugas
+          <input type="text" id="f-title" maxlength="120" placeholder="Contoh: Laporan praktikum jaringan" required>
+        </label>
+        <label>Mata pelajaran
+          <input type="text" id="f-subject" maxlength="60" list="subject-list" placeholder="Contoh: Matematika" required>
+          <datalist id="subject-list">
+            <option value="Matematika"></option>
+            <option value="Bahasa Indonesia"></option>
+            <option value="Bahasa Inggris"></option>
+            <option value="PPKn"></option>
+            <option value="Pendidikan Agama"></option>
+            <option value="PJOK"></option>
+            <option value="Sejarah"></option>
+            <option value="Informatika"></option>
+            <option value="Dasar-dasar Kejuruan"></option>
+            <option value="Produktif Kejuruan"></option>
+            <option value="Projek IPAS"></option>
+          </datalist>
+        </label>
+        <label>Deskripsi <span class="opt">(opsional)</span>
+          <textarea id="f-desc" rows="3" maxlength="1000" placeholder="Catatan tambahan…"></textarea>
+        </label>
+        <label>Deadline (tanggal &amp; jam)
+          <input type="datetime-local" id="f-deadline" required>
+        </label>
+        <fieldset class="prio-group">
+          <legend>Prioritas</legend>
+          <label class="prio-opt"><input type="radio" name="priority" value="rendah"><span>Rendah</span></label>
+          <label class="prio-opt"><input type="radio" name="priority" value="sedang" checked><span>Sedang</span></label>
+          <label class="prio-opt"><input type="radio" name="priority" value="tinggi"><span>Tinggi</span></label>
+        </fieldset>
+        <p id="form-error" class="error" role="alert"></p>
+        <div class="row end">
+          <button type="button" class="btn ghost" id="form-cancel">Batal</button>
+          <button type="submit" class="btn primary" id="form-submit">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pesan singkat (toast) -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- type="module" wajib karena app.js memakai import Firebase dari CDN -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
