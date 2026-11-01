@@ -78,15 +78,20 @@
         <button type="button" class="tab" data-tab="done">
           Selesai <span class="badge" id="count-done">0</span>
         </button>
+        <button type="button" class="tab tab-profile" data-tab="profile">👤 Profil</button>
       </nav>
     </header>
 
     <main class="container">
+      <!-- Semua isi halaman tugas (disembunyikan saat tab Profil dibuka) -->
+      <div id="tasks-area">
       <!-- Ringkasan: sapaan, statistik, progress (hanya di halaman "Belum Selesai") -->
       <div id="dash-top">
         <section class="hero" aria-live="polite">
           <div class="hero-title" id="greeting"></div>
           <div class="hero-sub" id="summary"></div>
+          <!-- Muncul hanya kalau belum punya nama; mengarah ke tab Profil -->
+          <button type="button" class="hero-link hidden" id="name-hint">✏️ Ganti nama sapaan</button>
         </section>
 
         <section class="stats" aria-label="Ringkasan tugas">
@@ -130,6 +135,37 @@
       <h2 id="page-title">Tugas Belum Selesai</h2>
       <div id="task-list" class="task-list"></div>
       <div id="empty-state" class="empty hidden"></div>
+      </div><!-- /tasks-area -->
+
+      <!-- ============ HALAMAN PROFIL ============ -->
+      <section id="profile-view" class="hidden">
+        <div class="profile-head">
+          <div class="avatar" id="avatar" aria-hidden="true">?</div>
+          <div class="profile-name" id="profile-name-show"></div>
+          <div class="profile-email" id="profile-email"></div>
+        </div>
+
+        <form id="profile-form" class="card" novalidate>
+          <h3>Nama sapaan</h3>
+          <label>Nama panggilan
+            <input type="text" id="p-name" maxlength="30" placeholder="Contoh: Adhi" autocomplete="nickname">
+          </label>
+          <p class="hint">Nama ini dipakai untuk menyapamu di halaman utama.</p>
+          <p id="profile-msg" class="error" role="alert"></p>
+          <button type="submit" class="btn primary block" id="profile-save">Simpan Nama</button>
+        </form>
+
+        <section class="card">
+          <h3>Ringkasan tugasmu</h3>
+          <div class="profile-stats">
+            <div><b id="p-total">0</b><span>Total</span></div>
+            <div><b id="p-pending">0</b><span>Belum selesai</span></div>
+            <div><b id="p-done">0</b><span>Selesai</span></div>
+          </div>
+        </section>
+
+        <button type="button" class="btn ghost block" id="logout-btn-2">Keluar dari akun</button>
+      </section>
     </main>
 
     <button type="button" class="fab" id="add-btn" aria-label="Tambah tugas">

@@ -178,6 +178,37 @@ textarea { resize: vertical; }
 .tab.active { color: var(--ink); border-bottom-color: var(--primary-dark); opacity: 1; }
 .badge { display: inline-block; min-width: 22px; padding: 0 7px; margin-left: 4px; border-radius: 999px; background: var(--primary-dark); color: var(--on-dark); font-size: .75rem; line-height: 22px; }
 
+/* Tab Profil: lebih ramping supaya 3 tab muat di layar HP kecil */
+.tab { font-size: .92rem; white-space: nowrap; padding-left: 4px; padding-right: 4px; }
+.tab-profile { flex: 0 0 auto; padding-left: 16px; padding-right: 16px; }
+
+/* ---------- Halaman profil ---------- */
+.profile-head { text-align: center; padding: 8px 0 18px; }
+.avatar {
+  width: 88px; height: 88px; margin: 0 auto 10px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem; font-weight: 800; color: var(--primary-darker);
+  background: linear-gradient(135deg, var(--topbar-1), var(--topbar-2));
+  border: 3px solid var(--primary-border); box-shadow: var(--shadow);
+}
+.profile-name { font-size: 1.3rem; font-weight: 800; overflow-wrap: anywhere; }
+.profile-email { font-size: .88rem; color: var(--muted); overflow-wrap: anywhere; }
+.card {
+  background: var(--primary-lighter); border: 1px solid var(--primary-border);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px;
+}
+.card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 12px; }
+.hint { color: var(--muted); font-size: .85rem; margin: -6px 0 10px; }
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.profile-stats b { display: block; font-size: 1.5rem; font-weight: 800; }
+.profile-stats span { font-size: .78rem; font-weight: 700; color: var(--muted); }
+.hero-link {
+  position: relative; z-index: 1; margin-top: 10px; background: rgba(255, 255, 255, .45);
+  border: 1px solid rgba(120, 80, 40, .3); border-radius: 999px; padding: 6px 14px;
+  font-size: .85rem; font-weight: 800; color: var(--primary-darker);
+}
+.hero-link:hover { background: rgba(255, 255, 255, .7); }
+
 /* ---------- Konten ---------- */
 .container { max-width: 720px; margin: 0 auto; padding: 16px 16px 110px; }
 #page-title { font-size: 1.15rem; font-weight: 800; margin: 6px 0 12px; }

@@ -8,7 +8,7 @@ import {
   getAuth, onAuthStateChanged, signOut,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect,
-  sendPasswordResetEmail,
+  sendPasswordResetEmail, updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
@@ -151,7 +151,12 @@ function sapaan() {
   return "Selamat malam";
 }
 function namaPanggilan() {
-  let nama = (user && user.displayName) || (user && user.email ? user.email.split("@")[0] : "");
+  // 1) Nama yang diisi di halaman Profil (atau nama akun Google).
+  //    Kalau terlalu panjang (mis. nama lengkap), pakai kata pertamanya saja.
+  const dn = ((user && user.displayName) || "").trim();
+  if (dn) return dn.length <= 16 ? dn : dn.split(/\s+/)[0];
+  // 2) Cadangan: bagian depan email
+  let nama = user && user.email ? user.email.split("@")[0] : "";
   nama = nama.split(/[\s._-]+/)[0] || "kamu";
   return nama.charAt(0).toUpperCase() + nama.slice(1);
 }
@@ -275,6 +280,7 @@ $("forgot-btn").addEventListener("click", async () => {
 });
 
 $("logout-btn").addEventListener("click", () => signOut(auth));
+$("logout-btn-2").addEventListener("click", () => signOut(auth)); // tombol keluar di halaman Profil
 
 // Dipanggil otomatis saat status login berubah
 onAuthStateChanged(auth, (u) => {
@@ -403,6 +409,12 @@ function setTab(nama) {
   $$(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === nama));
   $("page-title").textContent = nama === "pending" ? "Tugas Belum Selesai" : "Tugas Selesai";
   $("dash-top").classList.toggle("hidden", nama !== "pending"); // sapaan & statistik hanya di halaman "Belum Selesai"
+  // Tab Profil: sembunyikan daftar tugas & tombol tambah, tampilkan halaman profil
+  const diProfil = nama === "profile";
+  $("tasks-area").classList.toggle("hidden", diProfil);
+  $("profile-view").classList.toggle("hidden", !diProfil);
+  $("add-btn").classList.toggle("hidden", diProfil);
+  if (diProfil && user) { $("p-name").value = user.displayName || ""; $("profile-msg").textContent = ""; }
   animasi = true; // kartu tampil dengan animasi saat pindah halaman
   render();
 }
@@ -477,6 +489,7 @@ function render() {
 
   renderRingkasan(belum, selesai);
   renderBanner(belum);
+  segarProfil(belum, selesai);
 }
 
 // Sapaan, kartu statistik, dan progress bar
@@ -543,6 +556,45 @@ $("task-list").addEventListener("click", (e) => {
   if (aksi === "toggle") toggleSelesai(id);
   else if (aksi === "edit") bukaModal(id);
   else if (aksi === "delete") hapusTugas(id);
+});
+
+// ---------- Halaman profil ----------
+// Segarkan teks di halaman profil (tidak menyentuh kolom isian yang sedang diketik)
+function segarProfil(belum, selesai) {
+  if (!user) return;
+  const nama = namaPanggilan();
+  $("avatar").textContent = nama.charAt(0).toUpperCase();
+  $("profile-name-show").textContent = user.displayName || nama;
+  $("profile-email").textContent = user.email || "";
+  $("p-total").textContent = tasks.length;
+  $("p-pending").textContent = belum.length;
+  $("p-done").textContent = selesai.length;
+  // Ajakan ganti nama hanya muncul kalau belum punya nama
+  $("name-hint").classList.toggle("hidden", !!user.displayName);
+}
+
+$("name-hint").addEventListener("click", () => setTab("profile"));
+
+// Simpan nama ke profil akun Firebase Auth (tidak perlu mengubah aturan Firestore)
+$("profile-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!user) return;
+  const msg = $("profile-msg");
+  msg.textContent = "";
+  const nama = $("p-name").value.trim().replace(/\s+/g, " ");
+  if (nama.length < 2) { msg.textContent = "Nama minimal 2 huruf."; return; }
+
+  const tombol = $("profile-save");
+  tombol.disabled = true;
+  try {
+    await updateProfile(auth.currentUser, { displayName: nama });
+    toast("Nama berhasil disimpan 👍");
+    render(); // sapaan & avatar langsung berganti
+  } catch (ex) {
+    msg.textContent = pesanError(ex);
+  } finally {
+    tombol.disabled = false;
+  }
 });
 
 // ---------- Modal tambah / edit ----------
